@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>FLORA AI</title>
+
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+  <main class="app">
+
+    <header>
+
+      <div class="logo">
+        <div class="logo-orb"></div>
+
+        <div>
+          <h2>FLORA</h2>
+          <span>VOICE AI ASSISTANT</span>
+        </div>
+      </div>
+
+      <div class="status">
+        <span class="status-dot"></span>
+        <span id="status">READY</span>
+      </div>
+
+    </header>
+
+
+    <section class="assistant">
+
+      <div class="orb">
+
+        <div class="orb-ring"></div>
+
+        <div class="plasma plasma1"></div>
+        <div class="plasma plasma2"></div>
+        <div class="plasma plasma3"></div>
+        <div class="plasma plasma4"></div>
+
+        <div class="orb-center"></div>
+
+      </div>
+
+
+      <h1 id="assistantState">
+        FLORA
+      </h1>
+
+      <p id="assistantHint">
+        Press the microphone and talk to me.
+      </p>
+
+
+      <div class="conversation">
+
+        <div class="label">
+          YOU
+        </div>
+
+        <div id="userText">
+          —
+        </div>
+
+
+        <div class="label">
+          FLORA
+        </div>
+
+        <div id="floraText">
+          —
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <section class="controls">
+
+      <button id="screenButton">
+        ▣
+        <span>SCREEN</span>
+      </button>
+
+
+      <button id="micButton" class="mic">
+        ●
+      </button>
+
+
+      <button id="stopButton">
+        ■
+        <span>STOP</span>
+      </button>
+
+    </section>
+
+
+    <section class="quick-actions">
+
+      <button data-command="What time is it?">
+        TIME
+      </button>
+
+      <button data-command="What is today's date?">
+        DATE
+      </button>
+
+      <button data-command="What's the weather right now?">
+        WEATHER
+      </button>
+
+      <button data-site="https://www.youtube.com/">
+        YOUTUBE
+      </button>
+
+      <button data-site="https://www.wikipedia.org/">
+        WIKIPEDIA
+      </button>
+
+      <button data-site="https://chatgpt.com/">
+        CHATGPT
+      </button>
+
+      <button data-site="https://discord.com/app">
+        DISCORD
+      </button>
+
+      <button data-site="https://www.instagram.com/">
+        INSTAGRAM
+      </button>
+
+    </section>
+
+
+    <footer>
+
+      <span>
+        SCREEN:
+        <b id="screenStatus">OFF</b>
+      </span>
+
+      <span>
+        VOICE:
+        <b id="voiceStatus">READY</b>
+      </span>
+
+    </footer>
+
+  </main>
+
+
+  <script src="app.js"></script>
+
+</body>
+
+</html>
