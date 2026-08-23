@@ -1,13 +1,13 @@
 {
-  "name": "flora-web-assistant",
-  "version": "1.0.0",
+  "name": "flora-claude",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
-    "@google/genai": "^1.0.0",
+    "@anthropic-ai/sdk": "^0.60.0",
     "express": "^5.1.0"
   },
   "engines": {
