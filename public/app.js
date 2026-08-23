@@ -386,71 +386,157 @@ stopButton.onclick = () => {
    ASK GEMINI
 ------------------------- */
 
-async function askGemini(
-  message,
-  includeScreen = false
-) {
+// app.js
+// Unified Voice Assistant backend — supports OpenAI, Gemini, Groq, and Claude (Anthropic)
+//
+// SETUP:
+// 1. npm init -y
+// 2. npm install express dotenv node-fetch cors
+// 3. Create a ".env" file in the same folder and put your real API keys there.
+//    NEVER commit .env or hardcode keys in this file.
+// 4. node app.js
 
-  status.textContent =
-    "THINKING";
+require("dotenv").config();
+const express = require("express");
+const cors = require("cors");
+const fetch = require("node-fetch"); // Node < 18 needs this; Node 18+ has global fetch
 
+const app = express();
+app.use(cors());
+app.use(express.json());
 
-  const response =
-    await fetch("/api/ask", {
+// ---------------------------------------------------------------------------
+// API KEYS — loaded from environment variables (.env file), not hardcoded here
+// ---------------------------------------------------------------------------
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
+const CLAUDE_API_KEY = process.env.CLAUDE_API_KEY; // Anthropic API key
 
-      method: "POST",
+// ---------------------------------------------------------------------------
+// Provider handlers — each takes (message, history) and returns a text reply
+// ---------------------------------------------------------------------------
 
-      headers: {
-        "Content-Type":
-          "application/json"
-      },
-
-      body: JSON.stringify({
-
-        message,
-
-        history:
-          conversation,
-
-        screenshot:
-          includeScreen
-            ? screenshot
-            : null
-      })
-    });
-
-
-  const data =
-    await response.json();
-
-
-  if (!response.ok) {
-
-    throw new Error(
-      data.error ||
-      "Gemini request failed."
-    );
-  }
-
-
-  conversation.push({
-    role: "user",
-    content: message
+async function callOpenAI(message, history = []) {
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${OPENAI_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: "gpt-4o-mini",
+      messages: [...history, { role: "user", content: message }],
+    }),
   });
-
-
-  conversation.push({
-    role: "assistant",
-    content: data.answer
-  });
-
-
-  conversation =
-    conversation.slice(-12);
-
-
-  speak(data.answer);
+  const data = await res.json();
+  if (!res.ok) throw new Error(`OpenAI error: ${JSON.stringify(data)}`);
+  return data.choices[0].message.content;
 }
+
+async function callGroq(message, history = []) {
+  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${GROQ_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: "llama-3.3-70b-versatile",
+      messages: [...history, { role: "user", content: message }],
+    }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(`Groq error: ${JSON.stringify(data)}`);
+  return data.choices[0].message.content;
+}
+
+async function callGemini(message, history = []) {
+  // Gemini uses a different message shape: { role, parts: [{text}] }
+  const contents = [
+    ...history.map((h) => ({
+      role: h.role === "assistant" ? "model" : "user",
+      parts: [{ text: h.content }],
+    })),
+    { role: "user", parts: [{ text: message }] },
+  ];
+
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ contents }),
+    }
+  );
+  const data = await res.json();
+  if (!res.ok) throw new Error(`Gemini error: ${JSON.stringify(data)}`);
+  return data.candidates[0].content.parts[0].text;
+}
+
+async function callClaude(message, history = []) {
+  // Anthropic Messages API — same role/content shape as OpenAI (user/assistant)
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": CLAUDE_API_KEY,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-6",
+      max_tokens: 1024,
+      messages: [...history, { role: "user", content: message }],
+    }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(`Claude error: ${JSON.stringify(data)}`);
+  // Claude's response content is an array of blocks; join any text blocks
+  return data.content
+    .filter((block) => block.type === "text")
+    .map((block) => block.text)
+    .join("\n");
+}
+
+// ---------------------------------------------------------------------------
+// Router — pick provider dynamically
+// ---------------------------------------------------------------------------
+const PROVIDERS = {
+  openai: callOpenAI,
+  groq: callGroq,
+  gemini: callGemini,
+  claude: callClaude,
+};
+
+app.post("/chat", async (req, res) => {
+  try {
+    const { message, provider = "openai", history = [] } = req.body;
+
+    if (!message) {
+      return res.status(400).json({ error: "message is required" });
+    }
+    if (!PROVIDERS[provider]) {
+      return res.status(400).json({
+        error: `Unknown provider "${provider}". Choose from: ${Object.keys(PROVIDERS).join(", ")}`,
+      });
+    }
+
+    const reply = await PROVIDERS[provider](message, history);
+    res.json({ provider, reply });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/", (req, res) => {
+  res.send("Voice Assistant backend running. POST to /chat with { message, provider, history }.");
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Voice assistant server listening on http://localhost:${PORT}`);
+});
 
 
 /* -------------------------
