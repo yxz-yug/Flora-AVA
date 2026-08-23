@@ -489,7 +489,6 @@ async function askGemini(
   }
 
 }
-}
 
 
 /* -------------------------
