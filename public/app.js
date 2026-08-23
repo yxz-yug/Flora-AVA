@@ -391,65 +391,104 @@ async function askGemini(
   includeScreen = false
 ) {
 
-  status.textContent =
-    "THINKING";
+  status.textContent = "THINKING";
+
+  try {
+
+    const response = await fetch(
+      "/api/ask",
+      {
+        method: "POST",
+
+        headers: {
+          "Content-Type":
+            "application/json"
+        },
+
+        body: JSON.stringify({
+
+          message,
+
+          screenshot:
+            includeScreen
+              ? screenshot
+              : null
+
+        })
+      }
+    );
 
 
-  const response =
-    await fetch("/api/ask", {
+    const data =
+      await response.json();
 
-      method: "POST",
 
-      headers: {
-        "Content-Type":
-          "application/json"
-      },
+    if (!response.ok) {
 
-      body: JSON.stringify({
+      throw new Error(
+        data.error ||
+        "FLORA request failed."
+      );
 
-        message,
+    }
 
-        history:
-          conversation,
 
-        screenshot:
-          includeScreen
-            ? screenshot
-            : null
-      })
+    /*
+       Tell the UI which AI answered.
+    */
+
+    if (data.provider) {
+
+      console.log(
+        `FLORA used: ${data.provider}`
+      );
+
+    }
+
+
+    conversation.push({
+
+      role:
+        "user",
+
+      content:
+        message
+
     });
 
 
-  const data =
-    await response.json();
+    conversation.push({
+
+      role:
+        "assistant",
+
+      content:
+        data.answer
+
+    });
 
 
-  if (!response.ok) {
+    conversation =
+      conversation.slice(-12);
 
-    throw new Error(
-      data.error ||
-      "Gemini request failed."
+
+    speak(
+      data.answer
     );
+
+
+  } catch (error) {
+
+    console.error(error);
+
+    speak(
+      error.message ||
+      "FLORA couldn't connect to an AI."
+    );
+
   }
 
-
-  conversation.push({
-    role: "user",
-    content: message
-  });
-
-
-  conversation.push({
-    role: "assistant",
-    content: data.answer
-  });
-
-
-  conversation =
-    conversation.slice(-12);
-
-
-  speak(data.answer);
+}
 }
 
 
